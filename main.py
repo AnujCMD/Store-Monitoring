@@ -1,40 +1,46 @@
-from fastapi import FastAPI
-from typing import List
-from pydantic import BaseModel
+import uuid
+from typing import List, Dict
 
-from service import generate_report
+from fastapi import FastAPI
+from pydantic import BaseModel
+from starlette.responses import JSONResponse
+
+from config.mongo_connection import connect_mongo
+from service import generate_report, update_report, fetch_report
 
 app = FastAPI()
 
 
 class Report(BaseModel):
-    store_id: str
-    uptime_last_hour: int
-    uptime_last_day: int
-    uptime_last_week: int
-    downtime_last_hour: int
-    downtime_last_day: int
-    downtime_last_week: int
+    data: Dict[str, str]
+    status: str
 
 
 @app.get("/trigger_report", response_model=str)
-def trigger_report(csv_files: List[str]):
-    # Call the generate_report function with the provided CSV files
-    report_data = generate_report(csv_files)
-
-    # Save the report data and return the report_id
-    # Here, you can implement your logic to store the report data in the database and generate a unique report_id
-    report_id = "xyz123"
-
+def trigger_report():
+    report_id = uuid.uuid4().hex
+    generate_report(report_id)
     return report_id
+
+
+@app.get("/update_timestamp", response_model=str)
+def update_timestamp():
+    update_report()
+    return ''
 
 
 @app.get("/get_report", response_model=Report)
 def get_report(report_id: str):
-    # Here, you can implement your logic to retrieve the report data based on the report_id from the database
-    # Return the report data or appropriate status based on its availability
-    if report_id == "xyz123":
-        # Example report data
-        return Report(**report_data[0])
+    data = fetch_report(report_id)
+    if data is not None:
+        return Report(
+            data=data,
+            status="Success"
+        )
     else:
-        return "Report not found"
+        return JSONResponse(content={"status": "Pending"}, status_code=200)
+
+
+@app.get("/hello")
+def test_run():
+    return "Hello_Fast_API"
