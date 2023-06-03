@@ -1,45 +1,41 @@
 import uuid
-from typing import Dict
 
 from fastapi import FastAPI
-from pydantic import BaseModel
 from starlette.background import BackgroundTasks
-from starlette.responses import JSONResponse
 
-from service import generate_report, update_report, fetch_report
+from service.service_impl import generate_report, update_report, generated_report_response
 
 app = FastAPI()
 
-generated_report_response = {}
 
-
-class Report(BaseModel):
-    data: Dict[str, str]
-    status: str
-
-
-@app.get("/trigger_report", response_model=str)
+# API to trigger report generation, returns report_id immediately and triggers report generation as Background Task
+@app.get("/trigger_report", response_model=dict)
 def trigger_report(background_tasks: BackgroundTasks):
+    # Generate the UUID for unique report_id for every request
     report_id = uuid.uuid4().hex
-    generated_report_response[report_id] = {"status": "running", "result": None}
+    generated_report_response[report_id] = {"status": "running"}
+    # Add the report generation into background task and return the report id immediately
     background_tasks.add_task(generate_report, report_id)
-    return report_id
+    return {'report_id': report_id}
 
 
+# API to update the timestamp from string to DateTime object in Mongo
 @app.get("/update_timestamp", response_model=str)
 def update_timestamp():
     update_report()
     return ''
 
 
-@app.get("/get_report", response_model=Report)
+# API to get the report, takes report_id as Request Param
+@app.get("/get_report", response_model=dict)
 def get_report(report_id: str):
     if report_id in generated_report_response:
-        return generated_report_response['report_id']
+        return generated_report_response.get(report_id)
     else:
         return {"error": "Invalid report_id"}
 
 
+# Test API for checking the status of server
 @app.get("/hello")
 def test_run():
     return "Hello_Fast_API"
