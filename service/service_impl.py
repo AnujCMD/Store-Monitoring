@@ -18,10 +18,13 @@ def generate_report(report_id):
     try:
         # Fetching all the store_status to fetch all the available store
         store_statuses = db.store_status_updated.find()
+        store_id_dict = {}
         report_data = []
         for store in store_statuses:
             store_id = store['store_id']
-
+            if store_id in store_id_dict:
+                continue
+            store_id_dict[store_id] = 1
             # Calculate the timezone of store, if timezone is not available take the default time as 'America/Chicago'
             store_timezone = db.store_timezone.find_one({"store_id": store_id})
             if store_timezone is None or store_timezone['timezone_str'] is None:
