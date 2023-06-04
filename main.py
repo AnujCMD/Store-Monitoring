@@ -5,7 +5,10 @@ from starlette.background import BackgroundTasks
 
 from service.service_impl import generate_report, update_report, generated_report_response
 
-app = FastAPI()
+app = FastAPI(
+    title='Store Monitoring',
+    description='Gives information about whether the store is online or not during the business hours'
+)
 
 
 # API to trigger report generation, returns report_id immediately and triggers report generation as Background Task
